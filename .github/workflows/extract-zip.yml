@@ -1,34 +1,27 @@
-name: Extract ZIP
+unzip -o "$zip" -d .
+``` :chatgpt-content-reference{index="1"}
 
-on:
-  push:
-    paths:
-      - "*.zip"
 
-permissions:
-  contents: write
+### Fix it
 
-jobs:
-  extract:
-    runs-on: ubuntu-latest
+Edit `.github/workflows/extract-zip.yml` and replace the extraction step with:
 
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+```yaml
+- name: Extract ZIP files
+  run: |
+    for zip in *.zip; do
+      [ -f "$zip" ] || continue
 
-      - name: Extract ZIP files
-        run: |
-          for zip in *.zip; do
-            [ -f "$zip" ] || continue
-            unzip -o "$zip" -d .
-            rm "$zip"
-          done
+      mkdir -p extracted
+      unzip -o "$zip" -d extracted
 
-      - name: Commit extracted files
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+      # Move contents of the ZIP's top-level folder to repo root
+      find extracted -mindepth 1 -maxdepth 1 -type d -exec sh -c '
+        cp -r "$1"/. .
+      ' _ {} \;
 
-          git add .
-          git diff --cached --quiet || git commit -m "Extract ZIP files"
-          git push
+      find extracted -mindepth 1 -maxdepth 1 -type f -exec cp {} . \;
+
+      rm -rf extracted
+      rm "$zip"
+    done
