@@ -1,27 +1,53 @@
-unzip -o "$zip" -d .
-``` :chatgpt-content-reference{index="1"}
+name: Extract ZIP
 
+on:
+  push:
+    paths:
+      - "*.zip"
 
-### Fix it
+permissions:
+  contents: write
 
-Edit `.github/workflows/extract-zip.yml` and replace the extraction step with:
+jobs:
+  extract:
+    runs-on: ubuntu-latest
 
-```yaml
-- name: Extract ZIP files
-  run: |
-    for zip in *.zip; do
-      [ -f "$zip" ] || continue
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      mkdir -p extracted
-      unzip -o "$zip" -d extracted
+      - name: Extract ZIP
+        run: |
+          mkdir -p temp_extract
 
-      # Move contents of the ZIP's top-level folder to repo root
-      find extracted -mindepth 1 -maxdepth 1 -type d -exec sh -c '
-        cp -r "$1"/. .
-      ' _ {} \;
+          for zip in *.zip; do
+            [ -f "$zip" ] || continue
 
-      find extracted -mindepth 1 -maxdepth 1 -type f -exec cp {} . \;
+            unzip -q -o "$zip" -d temp_extract
 
-      rm -rf extracted
-      rm "$zip"
-    done
+            # If ZIP contains one top-level folder,
+            # copy its CONTENTS to repository root
+            top_dir=$(find temp_extract -mindepth 1 -maxdepth 1 -type d | head -n 1)
+
+            if [ -n "$top_dir" ]; then
+              cp -a "$top_dir"/. .
+            else
+              cp -a temp_extract/. .
+            fi
+
+            rm "$zip"
+          done
+
+          rm -rf temp_extract
+
+      - name: Commit changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add .
+
+          if ! git diff --cached --quiet; then
+            git commit -m "Extract ZIP contents"
+            git push
+          fi
