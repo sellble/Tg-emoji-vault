@@ -1,3 +1,4 @@
+# Note : i will add 1000+ more emojis If i get more stars
 # 🗃️ TG Emoji Vault
 
 A ready-made catalog of **500+ Telegram custom emoji IDs**, each one described by how it actually looks, so AI can pick the right emoji for your bot without any guesswork.
